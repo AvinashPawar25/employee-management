@@ -7,12 +7,7 @@ function EmployeeForm({
   onCancel,
 }) {
   return (
-    <div className="card">
-      <h2>
-        {editingId !== null
-          ? "Update Employee"
-          : "Create Employee"}
-      </h2>
+    <div className="employee-form">
 
       <form onSubmit={onSubmit}>
         <div className="form-grid">

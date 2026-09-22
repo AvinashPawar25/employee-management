@@ -26,6 +26,8 @@ function App() {
 
   const employeesPerPage = 10;
 
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -163,23 +165,20 @@ const handleSubmit = async (e) => {
   // EDIT EMPLOYEE
   // =========================
 
-  const handleEdit = (employee) => {
-    setEditingId(employee.id);
+const handleEdit = (employee) => {
+  setEditingId(employee.id);
 
-    setFormData({
-      firstName: employee.firstName || "",
-      lastName: employee.lastName || "",
-      email: employee.email || "",
-      phone: employee.phone || "",
-      position: employee.position || "",
-      salary: employee.salary ?? "",
-    });
+  setFormData({
+    firstName: employee.firstName || "",
+    lastName: employee.lastName || "",
+    email: employee.email || "",
+    phone: employee.phone || "",
+    position: employee.position || "",
+    salary: employee.salary ?? "",
+  });
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
+  setIsCreateOpen(true);
+};
 
   // =========================
   // DELETE EMPLOYEE
@@ -273,59 +272,116 @@ const handleDelete = async (id) => {
   // UI
   // =========================
 
-  return (
-    <div className="container">
+return (
+  <div className="container">
 
-      <h1>Employee Management System</h1>
+    <h1>Employee Management System</h1>
 
-      {/* Dashboard */}
+    {/* Dashboard */}
+    <Dashboard employees={employees} />
 
-      <Dashboard employees={employees} />
+    {/* Employee Header */}
+    <div className="employee-header">
+      <h2>Employee Management</h2>
 
-      {/* Create / Update Form */}
-
-      <EmployeeForm
-        formData={formData}
-        editingId={editingId}
-        loading={loading}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        onCancel={resetForm}
-      />
-
-      {employeesLoading ? (
-  <div className="card">
-    <p>Loading employees...</p>
-  </div>
-) : error ? (
-  <div className="card error-card">
-    <p>{error}</p>
-
-    <button onClick={fetchEmployees}>
-      Try Again
-    </button>
-  </div>
-) : (
-  <EmployeeTable
-    employees={employees}
-    search={search}
-    positionFilter={positionFilter}
-    currentPage={currentPage}
-    employeesPerPage={employeesPerPage}
-    onSearchChange={handleSearchChange}
-    onPositionFilterChange={
-      handlePositionFilterChange
-    }
-    onEdit={handleEdit}
-    onDelete={handleDelete}
-    onPrevious={handlePrevious}
-    onNext={handleNext}
-    onPageChange={handlePageChange}
-  />
-)}
-
+      <button
+        className="create-employee-btn"
+        onClick={() => {
+          resetForm();
+          setIsCreateOpen(true);
+        }}
+      >
+        + Create Employee
+      </button>
     </div>
-  );
+
+    {/* Employee Table */}
+    {employeesLoading ? (
+      <div className="card">
+        <p>Loading employees...</p>
+      </div>
+    ) : error ? (
+      <div className="card error-card">
+        <p>{error}</p>
+
+        <button onClick={fetchEmployees}>
+          Try Again
+        </button>
+      </div>
+    ) : (
+      <EmployeeTable
+        employees={employees}
+        search={search}
+        positionFilter={positionFilter}
+        currentPage={currentPage}
+        employeesPerPage={employeesPerPage}
+        onSearchChange={handleSearchChange}
+        onPositionFilterChange={
+          handlePositionFilterChange
+        }
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        onPageChange={handlePageChange}
+      />
+    )}
+
+    {/* Sidebar */}
+    {isCreateOpen && (
+      <>
+        <div
+          className="sidebar-overlay"
+          onClick={() => {
+            setIsCreateOpen(false);
+            resetForm();
+          }}
+        />
+
+        <div className="create-sidebar">
+
+          <div className="sidebar-header">
+            <h2>
+              {editingId !== null
+                ? "Update Employee"
+                : "Create Employee"}
+            </h2>
+
+            <button
+              type="button"
+              className="close-sidebar-btn"
+              onClick={() => {
+                setIsCreateOpen(false);
+                resetForm();
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="sidebar-body">
+
+            <EmployeeForm
+              formData={formData}
+              editingId={editingId}
+              loading={loading}
+              onChange={handleChange}
+              onSubmit={async (e) => {
+                await handleSubmit(e);
+              }}
+              onCancel={() => {
+                resetForm();
+                setIsCreateOpen(false);
+              }}
+            />
+
+          </div>
+        </div>
+      </>
+    )}
+
+  </div>
+);
 }
 
 export default App; 

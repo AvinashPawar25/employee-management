@@ -50,6 +50,7 @@ function EmployeeTable({
     <div className="card">
       <h2>Employees</h2>
 
+      {/* Search and Filter */}
       <div className="search-container">
         <input
           type="text"
@@ -72,6 +73,7 @@ function EmployeeTable({
         </select>
       </div>
 
+      {/* Employee Data */}
       {employees.length === 0 ? (
         <p>No employees found.</p>
       ) : filteredEmployees.length === 0 ? (
@@ -110,9 +112,9 @@ function EmployeeTable({
                   <td>
                     {employee.salary !== null &&
                     employee.salary !== undefined
-                      ? `₹${Number(employee.salary).toLocaleString(
-                          "en-IN"
-                        )}`
+                      ? `₹${Number(
+                          employee.salary
+                        ).toLocaleString("en-IN")}`
                       : "-"}
                   </td>
 
@@ -138,31 +140,36 @@ function EmployeeTable({
             </tbody>
           </table>
 
+          {/* Pagination */}
           <div className="pagination">
             <button
               onClick={onPrevious}
               disabled={currentPage === 1}
             >
-              Previous
+              ‹
             </button>
 
             {Array.from(
               { length: totalPages },
-              (_, index) => (
-                <button
-                  key={index + 1}
-                  onClick={() =>
-                    onPageChange(index + 1)
-                  }
-                  className={
-                    currentPage === index + 1
-                      ? "active-page"
-                      : ""
-                  }
-                >
-                  {index + 1}
-                </button>
-              )
+              (_, index) => {
+                const page = index + 1;
+
+                return (
+                  <button
+                    key={page}
+                    onClick={() =>
+                      onPageChange(page)
+                    }
+                    className={
+                      currentPage === page
+                        ? "active-page"
+                        : ""
+                    }
+                  >
+                    {page}
+                  </button>
+                );
+              }
             )}
 
             <button
@@ -172,7 +179,7 @@ function EmployeeTable({
                 totalPages === 0
               }
             >
-              Next
+              ›
             </button>
           </div>
         </div>
