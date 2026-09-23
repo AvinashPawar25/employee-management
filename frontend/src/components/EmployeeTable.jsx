@@ -58,45 +58,56 @@ function EmployeeTable({
         <p>No matching employees found.</p>
       ) : (
         <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Position</th>
-                <th>Salary</th>
-                <th className="th-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentEmployees.map((emp) => (
-                <tr key={emp.id}>
-                  <td>{emp.id}</td>
-                  <td>{emp.firstName} {emp.lastName}</td>
-                  <td>{emp.email}</td>
-                  <td>{emp.phone || "-"}</td>
-                  <td><span className="position-badge">{emp.position}</span></td>
-                  <td>
-                    {emp.salary !== null && emp.salary !== undefined && emp.salary !== ""
-                      ? `₹${Number(emp.salary).toLocaleString("en-IN")}`
-                      : "-"}
-                  </td>
-                  <td className="td-actions">
-                    <div className="actions">
-                      <button type="button" className="action-btn edit-btn" onClick={() => onEdit(emp)}>
-                        Edit
-                      </button>
-                      <button type="button" className="action-btn delete-btn" onClick={() => onDelete(emp.id)}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+<table className="employee-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Position</th>
+      <th>Salary</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {currentEmployees.map((emp) => (
+      <tr key={emp.id}>
+        <td>{emp.id}</td>
+        <td>{emp.firstName} {emp.lastName}</td>
+        <td>{emp.email}</td>
+        <td>{emp.phone || "-"}</td>
+        <td>
+          <span className="position-badge">{emp.position}</span>
+        </td>
+        <td>
+          {emp.salary !== null && emp.salary !== undefined && emp.salary !== ""
+            ? `₹${Number(emp.salary).toLocaleString("en-IN")}`
+            : "-"}
+        </td>
+        <td>
+          <div className="actions">
+            <button
+              type="button"
+              className="action-btn edit-btn"
+              onClick={() => onEdit(emp)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="action-btn delete-btn"
+              onClick={() => onDelete(emp.id)}
+            >
+              Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
 
           <div className="pagination">
             <button onClick={onPrevious} disabled={currentPage === 1}>‹</button>

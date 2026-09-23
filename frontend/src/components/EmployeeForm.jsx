@@ -12,11 +12,14 @@ function EmployeeForm({
     <div className="employee-form">
       <form onSubmit={onSubmit}>
         <div className="form-group">
-          <label>First Name <span className="required">*</span></label>
+          <label htmlFor="firstName">
+            First Name <span className="required">*</span>
+          </label>
           <input
+            id="firstName"
             type="text"
             name="firstName"
-            placeholder="e.g. Rahul"
+            placeholder="e.g. Avinash"
             value={formData.firstName}
             onChange={onChange}
             required
@@ -24,11 +27,14 @@ function EmployeeForm({
         </div>
 
         <div className="form-group">
-          <label>Last Name <span className="required">*</span></label>
+          <label htmlFor="lastName">
+            Last Name <span className="required">*</span>
+          </label>
           <input
+            id="lastName"
             type="text"
             name="lastName"
-            placeholder="e.g. Patil"
+            placeholder="e.g. Pawar"
             value={formData.lastName}
             onChange={onChange}
             required
@@ -36,11 +42,14 @@ function EmployeeForm({
         </div>
 
         <div className="form-group">
-          <label>Email Address <span className="required">*</span></label>
+          <label htmlFor="email">
+            Email Address <span className="required">*</span>
+          </label>
           <input
+            id="email"
             type="email"
             name="email"
-            placeholder="e.g. rahul@example.com"
+            placeholder="e.g. avinash@example.com"
             value={formData.email}
             onChange={onChange}
             required
@@ -48,19 +57,23 @@ function EmployeeForm({
         </div>
 
         <div className="form-group">
-          <label>Phone Number</label>
+          <label htmlFor="phone">Phone Number</label>
           <input
+            id="phone"
             type="text"
             name="phone"
-            placeholder="e.g. 9876543210"
+            placeholder="e.g. 9736543210"
             value={formData.phone}
             onChange={onChange}
           />
         </div>
 
         <div className="form-group">
-          <label>Position / Role <span className="required">*</span></label>
+          <label htmlFor="position">
+            Position / Role <span className="required">*</span>
+          </label>
           <input
+            id="position"
             type="text"
             name="position"
             placeholder="e.g. Software Engineer"
@@ -71,8 +84,9 @@ function EmployeeForm({
         </div>
 
         <div className="form-group">
-          <label>Salary (₹)</label>
+          <label htmlFor="salary">Salary (₹)</label>
           <input
+            id="salary"
             type="number"
             name="salary"
             placeholder="e.g. 50000"
@@ -90,7 +104,7 @@ function EmployeeForm({
           >
             Cancel
           </button>
-          
+
           <button
             type="submit"
             className="btn-submit"
