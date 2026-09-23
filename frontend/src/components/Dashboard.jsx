@@ -1,23 +1,14 @@
 function Dashboard({ employees }) {
   const totalEmployees = employees.length;
-
-  const totalPositions = new Set(
-    employees.map((employee) => employee.position)
-  ).size;
+  const totalPositions = new Set(employees.map((e) => e.position)).size;
 
   const employeesWithSalary = employees.filter(
-    (employee) =>
-      employee.salary !== null &&
-      employee.salary !== undefined
+    (e) => e.salary !== null && e.salary !== undefined && e.salary !== ""
   );
 
   const averageSalary =
     employeesWithSalary.length > 0
-      ? employeesWithSalary.reduce(
-          (total, employee) =>
-            total + Number(employee.salary),
-          0
-        ) / employeesWithSalary.length
+      ? employeesWithSalary.reduce((sum, e) => sum + Number(e.salary), 0) / employeesWithSalary.length
       : 0;
 
   return (
@@ -34,12 +25,7 @@ function Dashboard({ employees }) {
 
       <div className="dashboard-card">
         <h3>Average Salary</h3>
-        <p>
-          ₹
-          {averageSalary.toLocaleString("en-IN", {
-            maximumFractionDigits: 0,
-          })}
-        </p>
+        <p>₹{averageSalary.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
       </div>
     </div>
   );
