@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import "./App.css";
 
@@ -26,19 +26,13 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [positionFilter, setPositionFilter] = useState("");
 
-  // Pagination & Sorting states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEmployees, setTotalEmployees] = useState(0);
 
-  // Sort by default empty
   const [sortBy, setSortBy] = useState("");
   const [order, setOrder] = useState("asc");
   const employeesPerPage = 10;
-
-  // Custom Dropdown State for Positions
-  const [isPositionDropdownOpen, setIsPositionDropdownOpen] = useState(false);
-  const positionDropdownRef = useRef(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formData, setFormData] = useState(initialFormState);
@@ -47,7 +41,6 @@ function App() {
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  // Search Debounce (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchTerm);
@@ -56,21 +49,6 @@ function App() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Click outside to close custom position dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        positionDropdownRef.current &&
-        !positionDropdownRef.current.contains(event.target)
-      ) {
-        setIsPositionDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Fetch employees
   const fetchEmployees = async () => {
     try {
       setEmployeesLoading(true);
@@ -107,18 +85,13 @@ function App() {
     fetchEmployees();
   }, [currentPage, search, positionFilter, sortBy, order]);
 
-  // Dynamic positions from employees list
   const dynamicPositions = [
     ...new Set(employees.map((e) => e.position).filter(Boolean)),
   ];
 
-  // Check if any filter is active
   const isAnyFilterActive =
-    searchTerm.trim() !== "" ||
-    positionFilter !== "" ||
-    sortBy !== "";
+    searchTerm.trim() !== "" || positionFilter !== "" || sortBy !== "";
 
-  // Reset all filters function
   const handleClearFilters = () => {
     setSearchTerm("");
     setSearch("");
@@ -128,7 +101,6 @@ function App() {
     setCurrentPage(1);
   };
 
-  // Dashboard Calculations
   const totalPositionsCount = dynamicPositions.length;
   const employeesWithSalary = employees.filter(
     (e) => e.salary !== null && e.salary !== undefined && e.salary !== ""
@@ -233,199 +205,179 @@ function App() {
   };
 
   return (
-    <div className="container">
+    <div className="app-layout">
       <Toaster position="top-right" reverseOrder={false} />
-      <h1>Employee Management System</h1>
 
-      {/* 1. Dashboard */}
-      <div className="dashboard">
-        <div className="dashboard-card">
-          <h3>Total Employees</h3>
-          <p>{totalEmployees}</p>
+      {/* 1. FIXED TOP HEADER SECTION */}
+      <header className="fixed-top-section">
+        <h1>Employee Management System</h1>
+
+        <div className="dashboard">
+          <div className="dashboard-card">
+            <h3>Total Employees</h3>
+            <p>{totalEmployees}</p>
+          </div>
+          <div className="dashboard-card">
+            <h3>Total Positions</h3>
+            <p>{totalPositionsCount}</p>
+          </div>
+          <div className="dashboard-card">
+            <h3>Average Salary</h3>
+            <p>₹{averageSalary.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+          </div>
         </div>
-        <div className="dashboard-card">
-          <h3>Total Positions</h3>
-          <p>{totalPositionsCount}</p>
+
+        <div className="employee-header">
+          <h2>Employee Management</h2>
+          <button
+            type="button"
+            className="create-employee-btn"
+            onClick={() => {
+              resetForm();
+              setIsCreateOpen(true);
+            }}
+          >
+            + Create Employee
+          </button>
         </div>
-        <div className="dashboard-card">
-          <h3>Average Salary</h3>
-          <p>₹{averageSalary.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
-        </div>
-      </div>
+      </header>
 
-      {/* 2. Top Header & Action */}
-      <div className="employee-header">
-        <h2>Employee Management</h2>
-        <button
-          type="button"
-          className="create-employee-btn"
-          onClick={() => {
-            resetForm();
-            setIsCreateOpen(true);
-          }}
-        >
-          + Create Employee
-        </button>
-      </div>
+      {/* 2. TABLE & FILTERS SECTION (Sticky Filters + Fixed Height Table Area) */}
+      <main className="table-wrapper-section">
+        <div className="card table-card-container">
+          <div className="table-card-header">
 
-      {/* 3. Search, Filters, Sorting & Table Section */}
-      <div className="card">
-        <h2>Employees</h2>
+            {/* STICKY FILTERS */}
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search by name, email, position..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
 
-        <div className="search-container">
-          {/* Search Input */}
-          <input
-            type="text"
-            placeholder="Search by name, email, position..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+              <select
+                value={positionFilter}
+                onChange={(e) => {
+                  setPositionFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">All Positions</option>
+                {dynamicPositions.map((pos) => (
+                  <option key={pos} value={pos}>
+                    {pos}
+                  </option>
+                ))}
+              </select>
 
-          {/* Custom Positions Dropdown: बरोबर ५ दिसतील आणि स्क्रोल होईल */}
-          <div className="custom-dropdown" ref={positionDropdownRef}>
-            <button
-              type="button"
-              className="dropdown-trigger"
-              onClick={() => setIsPositionDropdownOpen((prev) => !prev)}
-            >
-              <span>{positionFilter || "All Positions"}</span>
-              <span className="dropdown-arrow">▾</span>
-            </button>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">Sort by</option>
+                <option value="id">ID</option>
+                <option value="firstName">First Name</option>
+                <option value="lastName">Last Name</option>
+                <option value="position">Position</option>
+                <option value="salary">Salary</option>
+              </select>
 
-            {isPositionDropdownOpen && (
-              <div className="dropdown-menu scrollable-positions">
-                <div
-                  className={`dropdown-item ${positionFilter === "" ? "selected" : ""}`}
-                  onClick={() => {
-                    setPositionFilter("");
+              {sortBy && (
+                <select
+                  value={order}
+                  onChange={(e) => {
+                    setOrder(e.target.value);
                     setCurrentPage(1);
-                    setIsPositionDropdownOpen(false);
                   }}
                 >
-                  All Positions
-                </div>
-                {dynamicPositions.map((pos) => (
-                  <div
-                    key={pos}
-                    className={`dropdown-item ${positionFilter === pos ? "selected" : ""}`}
-                    onClick={() => {
-                      setPositionFilter(pos);
-                      setCurrentPage(1);
-                      setIsPositionDropdownOpen(false);
-                    }}
-                  >
-                    {pos}
-                  </div>
-                ))}
+                  <option value="asc">Ascending (A-Z / Low-High)</option>
+                  <option value="desc">Descending (Z-A / High-Low)</option>
+                </select>
+              )}
+
+              {isAnyFilterActive && (
+                <button
+                  type="button"
+                  className="clear-filters-btn"
+                  onClick={handleClearFilters}
+                  title="Clear all filters"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* TABLE SCROLLABLE BODY (Outer border removed, fixed height maintained) */}
+          <div className="table-scroll-area">
+            {employeesLoading ? (
+              <div className="table-status-msg">Loading employees...</div>
+            ) : error ? (
+              <div className="table-status-msg error-msg">
+                <p>{error}</p>
+                <button type="button" onClick={fetchEmployees}>Try Again</button>
               </div>
+            ) : employees.length === 0 ? (
+              <div className="table-status-msg">No employees found.</div>
+            ) : (
+              <table className="employee-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Position</th>
+                    <th>Salary</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((emp) => (
+                    <tr key={emp.id}>
+                      <td>{emp.id}</td>
+                      <td>{emp.firstName} {emp.lastName}</td>
+                      <td>{emp.email}</td>
+                      <td>{emp.phone || "-"}</td>
+                      <td>
+                        <span className="position-badge">{emp.position}</span>
+                      </td>
+                      <td>
+                        {emp.salary !== null && emp.salary !== undefined && emp.salary !== ""
+                          ? `₹${Number(emp.salary).toLocaleString("en-IN")}`
+                          : "-"}
+                      </td>
+                      <td>
+                        <div className="actions">
+                          <button
+                            type="button"
+                            className="action-btn edit-btn"
+                            onClick={() => handleEdit(emp)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="action-btn delete-btn"
+                            onClick={() => handleDelete(emp.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
 
-          {/* Sort By Dropdown (Default Empty) */}
-          <select
-            value={sortBy}
-            onChange={(e) => {
-              setSortBy(e.target.value);
-              setCurrentPage(1);
-            }}
-          >
-            <option value="">Sort by</option>
-            <option value="id">ID</option>
-            <option value="firstName">First Name</option>
-            <option value="lastName">Last Name</option>
-            <option value="position">Position</option>
-            <option value="salary">Salary</option>
-          </select>
-
-          {/* Order Dropdown: फक्त Sort by सिलेक्ट असेल तरच दिसेल */}
-          {sortBy && (
-            <select
-              value={order}
-              onChange={(e) => {
-                setOrder(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="asc">Ascending (A-Z / Low-High)</option>
-              <option value="desc">Descending (Z-A / High-Low)</option>
-            </select>
-          )}
-
-          {/* Clear Filters Button: कोणताही फिल्टर भरला असल्यास दिसेल */}
-          {isAnyFilterActive && (
-            <button
-              type="button"
-              className="clear-filters-btn"
-              onClick={handleClearFilters}
-              title="Clear all filters"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
-
-        {employeesLoading ? (
-          <p>Loading employees...</p>
-        ) : error ? (
-          <div className="error-card">
-            <p>{error}</p>
-            <button type="button" onClick={fetchEmployees}>Try Again</button>
-          </div>
-        ) : employees.length === 0 ? (
-          <p>No employees found.</p>
-        ) : (
-          <div className="table-container">
-            <table className="employee-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Position</th>
-                  <th>Salary</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((emp) => (
-                  <tr key={emp.id}>
-                    <td>{emp.id}</td>
-                    <td>{emp.firstName} {emp.lastName}</td>
-                    <td>{emp.email}</td>
-                    <td>{emp.phone || "-"}</td>
-                    <td>
-                      <span className="position-badge">{emp.position}</span>
-                    </td>
-                    <td>
-                      {emp.salary !== null && emp.salary !== undefined && emp.salary !== ""
-                        ? `₹${Number(emp.salary).toLocaleString("en-IN")}`
-                        : "-"}
-                    </td>
-                    <td>
-                      <div className="actions">
-                        <button
-                          type="button"
-                          className="action-btn edit-btn"
-                          onClick={() => handleEdit(emp)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="action-btn delete-btn"
-                          onClick={() => handleDelete(emp.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Pagination */}
+          {/* 3. PAGINATION (Fixed at bottom under the table) */}
+          <div className="table-footer-pagination">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -434,10 +386,10 @@ function App() {
               onPageChange={(page) => setCurrentPage(page)}
             />
           </div>
-        )}
-      </div>
+        </div>
+      </main>
 
-      {/* 4. Sidebar */}
+      {/* 4. SIDEBAR */}
       {isCreateOpen && (
         <>
           <div className="sidebar-overlay" onClick={closeSidebar} />
