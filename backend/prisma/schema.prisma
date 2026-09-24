@@ -16,4 +16,8 @@ model Employee {
   salary    Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([position])
+  @@index([createdAt])
+
 }

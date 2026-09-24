@@ -1,15 +1,183 @@
 const prisma = require("../lib/prisma");
 
-// GET all employees
+// GET employees with pagination, search, position filter and sorting
+
 const getEmployees = async (req, res, next) => {
   try {
+    // Get query parameters
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const search = req.query.search?.trim() || "";
+    const position = req.query.position?.trim() || "";
+
+    const sortBy = req.query.sortBy || "id";
+    const order = req.query.order || "asc";
+
+    // Validate pagination
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({
+        message: "Page and limit must be greater than 0",
+      });
+    }
+
+    // Allowed sorting fields
+    const allowedSortFields = [
+      "id",
+      "firstName",
+      "lastName",
+      "position",
+      "salary",
+      "createdAt",
+    ];
+
+    // Validate sort field
+    if (!allowedSortFields.includes(sortBy)) {
+      return res.status(400).json({
+        message: "Invalid sort field",
+      });
+    }
+
+    // Validate sort order
+    if (!["asc", "desc"].includes(order)) {
+      return res.status(400).json({
+        message: "Order must be either asc or desc",
+      });
+    }
+
+    // Calculate skip
+    const skip = (page - 1) * limit;
+
+    // Build WHERE conditions
+    const conditions = [];
+
+    // Search
+    if (search) {
+      const searchWords = search
+        .split(/\s+/)
+        .filter(Boolean);
+
+      if (searchWords.length === 1) {
+        conditions.push({
+          OR: [
+            {
+              firstName: {
+                contains: searchWords[0],
+                mode: "insensitive",
+              },
+            },
+            {
+              lastName: {
+                contains: searchWords[0],
+                mode: "insensitive",
+              },
+            },
+            {
+              email: {
+                contains: searchWords[0],
+                mode: "insensitive",
+              },
+            },
+            {
+              position: {
+                contains: searchWords[0],
+                mode: "insensitive",
+              },
+            },
+          ],
+        });
+      } else {
+        const firstName = searchWords[0];
+        const lastName = searchWords.slice(1).join(" ");
+
+        conditions.push({
+          OR: [
+            {
+              AND: [
+                {
+                  firstName: {
+                    contains: firstName,
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  lastName: {
+                    contains: lastName,
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            },
+            {
+              email: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              position: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        });
+      }
+    }
+
+    // Position filter
+    if (position) {
+      conditions.push({
+        position: {
+          equals: position,
+          mode: "insensitive",
+        },
+      });
+    }
+
+    // Final WHERE condition
+    const where =
+      conditions.length > 0
+        ? {
+            AND: conditions,
+          }
+        : {};
+
+    // Get employees
     const employees = await prisma.employee.findMany({
+      where,
+      skip,
+      take: limit,
       orderBy: {
-        id: "asc",
+        [sortBy]: order,
       },
     });
 
-    res.json(employees);
+    // Count matching employees
+    const totalEmployees = await prisma.employee.count({
+      where,
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(
+      totalEmployees / limit
+    );
+
+    // Send response
+    res.json({
+      success: true,
+      data: employees,
+      pagination: {
+        currentPage: page,
+        limit,
+        totalEmployees,
+        totalPages,
+      },
+      sorting: {
+        sortBy,
+        order,
+      },
+    });
   } catch (error) {
     next(error);
   }

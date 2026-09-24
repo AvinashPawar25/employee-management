@@ -12,7 +12,29 @@ const rateLimit = require("express-rate-limit");
 const employeeRoutes = require("./routes/employeeRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
+const prisma = require("./lib/prisma");
+
 const app = express();
+
+app.get("/health", async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+
+    res.json({
+      success: true,
+      server: "UP",
+      database: "UP",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(503).json({
+      success: false,
+      server: "UP",
+      database: "DOWN",
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -59,7 +81,9 @@ app.use(
 
 app.get("/", (req, res) => {
   res.json({
+    success: true,
     message: "Employee Management API is running",
+    timestamp: new Date().toISOString(),
   });
 });
 
