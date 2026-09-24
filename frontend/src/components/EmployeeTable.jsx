@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 
 function EmployeeTable({
-  employees,
-  search,
-  positionFilter,
-  currentPage,
-  totalPages,
-  sortBy,
-  order,
+  employees = [],
+  search = "",
+  positionFilter = "",
+  currentPage = 1,
+  totalPages = 1,
+  sortBy = "id",
+  order = "asc",
   onSortByChange,
   onOrderChange,
   onSearchChange,
@@ -18,7 +18,6 @@ function EmployeeTable({
   onNext,
   onPageChange,
 }) {
-  // Cursor चा Focus टिकवून ठेवण्यासाठी Local State + Debounce
   const [searchTerm, setSearchTerm] = useState(search);
 
   useEffect(() => {
@@ -30,26 +29,59 @@ function EmployeeTable({
       if (searchTerm !== search) {
         onSearchChange(searchTerm);
       }
-    }, 300); // युझर टाईप करत असताना 300ms थांबून API कॉल होईल
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const positions = [
-    "Frontend Developer",
-    "Backend Developer",
-    "Full Stack Developer",
-    "UI/UX Designer",
-    "QA Engineer",
-    "DevOps Engineer",
-    "Software Engineer",
+  // Frontend Fallback Filter & Sort (Backend जुना असला तरीही स्क्रीनवर फिल्टर १००% चालेल)
+  const query = (search || "").trim().toLowerCase();
+
+  const filteredList = employees
+    .filter((emp) => {
+      const fullName = `${emp.firstName || ""} ${emp.lastName || ""}`.toLowerCase();
+      const email = (emp.email || "").toLowerCase();
+      const pos = (emp.position || "").toLowerCase();
+
+      const matchesSearch =
+        !query ||
+        fullName.includes(query) ||
+        (emp.firstName || "").toLowerCase().includes(query) ||
+        (emp.lastName || "").toLowerCase().includes(query) ||
+        email.includes(query) ||
+        pos.includes(query);
+
+      const matchesPosition =
+        !positionFilter || pos === positionFilter.toLowerCase();
+
+      return matchesSearch && matchesPosition;
+    })
+    .sort((a, b) => {
+      let valA = a[sortBy];
+      let valB = b[sortBy];
+
+      if (sortBy === "salary" || sortBy === "id") {
+        valA = Number(valA) || 0;
+        valB = Number(valB) || 0;
+      } else {
+        valA = (valA || "").toString().toLowerCase();
+        valB = (valB || "").toString().toLowerCase();
+      }
+
+      if (valA < valB) return order === "asc" ? -1 : 1;
+      if (valA > valB) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+
+  // Unique Positions
+  const availablePositions = [
+    ...new Set(employees.map((e) => e.position).filter(Boolean)),
   ];
 
   return (
     <div className="card">
       <h2>Employees</h2>
 
-      {/* Search + Position + Sorting Dropdowns */}
       <div className="search-container">
         <input
           type="text"
@@ -63,14 +95,13 @@ function EmployeeTable({
           onChange={(e) => onPositionFilterChange(e.target.value)}
         >
           <option value="">All Positions</option>
-          {positions.map((pos) => (
+          {availablePositions.map((pos) => (
             <option key={pos} value={pos}>
               {pos}
             </option>
           ))}
         </select>
 
-        {/* Sort By Column Dropdown */}
         <select
           value={sortBy}
           onChange={(e) => onSortByChange(e.target.value)}
@@ -82,7 +113,6 @@ function EmployeeTable({
           <option value="salary">Sort by: Salary</option>
         </select>
 
-        {/* Order Dropdown (Asc / Desc) */}
         <select
           value={order}
           onChange={(e) => onOrderChange(e.target.value)}
@@ -92,8 +122,8 @@ function EmployeeTable({
         </select>
       </div>
 
-      {employees.length === 0 ? (
-        <p>No employees found.</p>
+      {filteredList.length === 0 ? (
+        <p>No matching employees found.</p>
       ) : (
         <div className="table-container">
           <table className="employee-table">
@@ -109,7 +139,8 @@ function EmployeeTable({
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
+              {/* इथे filteredList मॅप केली आहे */}
+              {filteredList.map((emp) => (
                 <tr key={emp.id}>
                   <td>{emp.id}</td>
                   <td>
@@ -150,7 +181,6 @@ function EmployeeTable({
             </tbody>
           </table>
 
-          {/* Pagination */}
           <div className="pagination">
             <button onClick={onPrevious} disabled={currentPage === 1}>
               ‹
