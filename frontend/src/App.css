@@ -151,9 +151,21 @@ body {
 
 .search-container {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .search-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .search-container {
+    grid-template-columns: 1fr;
+  }
 }
 
 .search-container input,

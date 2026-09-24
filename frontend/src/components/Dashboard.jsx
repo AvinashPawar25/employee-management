@@ -1,5 +1,7 @@
-function Dashboard({ employees }) {
-  const totalEmployees = employees.length;
+import React from "react";
+
+function Dashboard({ employees, totalEmployeesCount }) {
+  const totalEmployees = totalEmployeesCount !== undefined ? totalEmployeesCount : employees.length;
   const totalPositions = new Set(employees.map((e) => e.position)).size;
 
   const employeesWithSalary = employees.filter(
