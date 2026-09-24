@@ -56,10 +56,17 @@ function App() {
         order,
       });
 
-      setEmployees(res.data || []);
-      if (res.pagination) {
+      // Handle both formats: Direct Array vs Object with .data
+      const employeeList = Array.isArray(res) ? res : res?.data || [];
+      setEmployees(employeeList);
+
+      if (res?.pagination) {
         setTotalPages(res.pagination.totalPages || 1);
         setTotalEmployees(res.pagination.totalEmployees || 0);
+      } else {
+        // Fallback for direct array response
+        setTotalEmployees(employeeList.length);
+        setTotalPages(Math.ceil(employeeList.length / employeesPerPage) || 1);
       }
     } catch (err) {
       setError(err.message || "Failed to load employees");
