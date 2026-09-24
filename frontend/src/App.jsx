@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import "./App.css";
 
-import Dashboard from "./components/Dashboard";
 import EmployeeForm from "./components/EmployeeForm";
-import EmployeeTable from "./components/EmployeeTable";
+import Pagination from "./components/Pagination";
 import {
   getEmployees,
   createEmployee,
@@ -24,15 +23,22 @@ const initialFormState = {
 function App() {
   const [employees, setEmployees] = useState([]);
   const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [positionFilter, setPositionFilter] = useState("");
 
   // Pagination & Sorting states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEmployees, setTotalEmployees] = useState(0);
-  const [sortBy, setSortBy] = useState("id");
+
+  // Sort by default empty
+  const [sortBy, setSortBy] = useState("");
   const [order, setOrder] = useState("asc");
   const employeesPerPage = 10;
+
+  // Custom Dropdown State for Positions
+  const [isPositionDropdownOpen, setIsPositionDropdownOpen] = useState(false);
+  const positionDropdownRef = useRef(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formData, setFormData] = useState(initialFormState);
@@ -40,6 +46,29 @@ function App() {
   const [employeesLoading, setEmployeesLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
+
+  // Search Debounce (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchTerm);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Click outside to close custom position dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        positionDropdownRef.current &&
+        !positionDropdownRef.current.contains(event.target)
+      ) {
+        setIsPositionDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Fetch employees
   const fetchEmployees = async () => {
@@ -52,11 +81,10 @@ function App() {
         limit: employeesPerPage,
         search,
         position: positionFilter,
-        sortBy,
-        order,
+        sortBy: sortBy || "id",
+        order: order || "asc",
       });
 
-      // Handle both formats: Direct Array vs Object with .data
       const employeeList = Array.isArray(res) ? res : res?.data || [];
       setEmployees(employeeList);
 
@@ -64,7 +92,6 @@ function App() {
         setTotalPages(res.pagination.totalPages || 1);
         setTotalEmployees(res.pagination.totalEmployees || 0);
       } else {
-        // Fallback for direct array response
         setTotalEmployees(employeeList.length);
         setTotalPages(Math.ceil(employeeList.length / employeesPerPage) || 1);
       }
@@ -79,6 +106,38 @@ function App() {
   useEffect(() => {
     fetchEmployees();
   }, [currentPage, search, positionFilter, sortBy, order]);
+
+  // Dynamic positions from employees list
+  const dynamicPositions = [
+    ...new Set(employees.map((e) => e.position).filter(Boolean)),
+  ];
+
+  // Check if any filter is active
+  const isAnyFilterActive =
+    searchTerm.trim() !== "" ||
+    positionFilter !== "" ||
+    sortBy !== "";
+
+  // Reset all filters function
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setSearch("");
+    setPositionFilter("");
+    setSortBy("");
+    setOrder("asc");
+    setCurrentPage(1);
+  };
+
+  // Dashboard Calculations
+  const totalPositionsCount = dynamicPositions.length;
+  const employeesWithSalary = employees.filter(
+    (e) => e.salary !== null && e.salary !== undefined && e.salary !== ""
+  );
+  const averageSalary =
+    employeesWithSalary.length > 0
+      ? employeesWithSalary.reduce((sum, e) => sum + Number(e.salary), 0) /
+        employeesWithSalary.length
+      : 0;
 
   const resetForm = () => {
     setEditingId(null);
@@ -157,6 +216,8 @@ function App() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this employee?")) return;
+
     try {
       await deleteEmployee(id);
       toast.success("Employee deleted successfully!");
@@ -176,11 +237,27 @@ function App() {
       <Toaster position="top-right" reverseOrder={false} />
       <h1>Employee Management System</h1>
 
-      <Dashboard employees={employees} totalEmployeesCount={totalEmployees} />
+      {/* 1. Dashboard */}
+      <div className="dashboard">
+        <div className="dashboard-card">
+          <h3>Total Employees</h3>
+          <p>{totalEmployees}</p>
+        </div>
+        <div className="dashboard-card">
+          <h3>Total Positions</h3>
+          <p>{totalPositionsCount}</p>
+        </div>
+        <div className="dashboard-card">
+          <h3>Average Salary</h3>
+          <p>₹{averageSalary.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+        </div>
+      </div>
 
+      {/* 2. Top Header & Action */}
       <div className="employee-header">
         <h2>Employee Management</h2>
         <button
+          type="button"
           className="create-employee-btn"
           onClick={() => {
             resetForm();
@@ -191,52 +268,182 @@ function App() {
         </button>
       </div>
 
-      {error ? (
-        <div className="card error-card">
-          <p>{error}</p>
-          <button onClick={fetchEmployees}>Try Again</button>
-        </div>
-      ) : (
-        <EmployeeTable
-          employees={employees}
-          search={search}
-          positionFilter={positionFilter}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          sortBy={sortBy}
-          order={order}
-          onSortByChange={(val) => {
-            setSortBy(val);
-            setCurrentPage(1);
-          }}
-          onOrderChange={(val) => {
-            setOrder(val);
-            setCurrentPage(1);
-          }}
-          onSearchChange={(val) => {
-            setSearch(val);
-            setCurrentPage(1);
-          }}
-          onPositionFilterChange={(val) => {
-            setPositionFilter(val);
-            setCurrentPage(1);
-          }}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onPrevious={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-          onNext={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-          onPageChange={(page) => setCurrentPage(page)}
-        />
-      )}
+      {/* 3. Search, Filters, Sorting & Table Section */}
+      <div className="card">
+        <h2>Employees</h2>
 
+        <div className="search-container">
+          {/* Search Input */}
+          <input
+            type="text"
+            placeholder="Search by name, email, position..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
+          {/* Custom Positions Dropdown: बरोबर ५ दिसतील आणि स्क्रोल होईल */}
+          <div className="custom-dropdown" ref={positionDropdownRef}>
+            <button
+              type="button"
+              className="dropdown-trigger"
+              onClick={() => setIsPositionDropdownOpen((prev) => !prev)}
+            >
+              <span>{positionFilter || "All Positions"}</span>
+              <span className="dropdown-arrow">▾</span>
+            </button>
+
+            {isPositionDropdownOpen && (
+              <div className="dropdown-menu scrollable-positions">
+                <div
+                  className={`dropdown-item ${positionFilter === "" ? "selected" : ""}`}
+                  onClick={() => {
+                    setPositionFilter("");
+                    setCurrentPage(1);
+                    setIsPositionDropdownOpen(false);
+                  }}
+                >
+                  All Positions
+                </div>
+                {dynamicPositions.map((pos) => (
+                  <div
+                    key={pos}
+                    className={`dropdown-item ${positionFilter === pos ? "selected" : ""}`}
+                    onClick={() => {
+                      setPositionFilter(pos);
+                      setCurrentPage(1);
+                      setIsPositionDropdownOpen(false);
+                    }}
+                  >
+                    {pos}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sort By Dropdown (Default Empty) */}
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="">Sort by</option>
+            <option value="id">ID</option>
+            <option value="firstName">First Name</option>
+            <option value="lastName">Last Name</option>
+            <option value="position">Position</option>
+            <option value="salary">Salary</option>
+          </select>
+
+          {/* Order Dropdown: फक्त Sort by सिलेक्ट असेल तरच दिसेल */}
+          {sortBy && (
+            <select
+              value={order}
+              onChange={(e) => {
+                setOrder(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="asc">Ascending (A-Z / Low-High)</option>
+              <option value="desc">Descending (Z-A / High-Low)</option>
+            </select>
+          )}
+
+          {/* Clear Filters Button: कोणताही फिल्टर भरला असल्यास दिसेल */}
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              className="clear-filters-btn"
+              onClick={handleClearFilters}
+              title="Clear all filters"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {employeesLoading ? (
+          <p>Loading employees...</p>
+        ) : error ? (
+          <div className="error-card">
+            <p>{error}</p>
+            <button type="button" onClick={fetchEmployees}>Try Again</button>
+          </div>
+        ) : employees.length === 0 ? (
+          <p>No employees found.</p>
+        ) : (
+          <div className="table-container">
+            <table className="employee-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Position</th>
+                  <th>Salary</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp) => (
+                  <tr key={emp.id}>
+                    <td>{emp.id}</td>
+                    <td>{emp.firstName} {emp.lastName}</td>
+                    <td>{emp.email}</td>
+                    <td>{emp.phone || "-"}</td>
+                    <td>
+                      <span className="position-badge">{emp.position}</span>
+                    </td>
+                    <td>
+                      {emp.salary !== null && emp.salary !== undefined && emp.salary !== ""
+                        ? `₹${Number(emp.salary).toLocaleString("en-IN")}`
+                        : "-"}
+                    </td>
+                    <td>
+                      <div className="actions">
+                        <button
+                          type="button"
+                          className="action-btn edit-btn"
+                          onClick={() => handleEdit(emp)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="action-btn delete-btn"
+                          onClick={() => handleDelete(emp.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPrevious={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              onNext={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              onPageChange={(page) => setCurrentPage(page)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* 4. Sidebar */}
       {isCreateOpen && (
         <>
           <div className="sidebar-overlay" onClick={closeSidebar} />
           <div className="create-sidebar">
             <div className="sidebar-header">
-              <h2>
-                {editingId !== null ? "Update Employee" : "Create Employee"}
-              </h2>
+              <h2>{editingId !== null ? "Update Employee" : "Create Employee"}</h2>
               <button
                 type="button"
                 className="close-sidebar-btn"
