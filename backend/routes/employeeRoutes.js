@@ -9,6 +9,8 @@ const {
   deleteEmployee,
 } = require("../controllers/employeeController");
 
+const authMiddleware = require("../middleware/authMiddleware");
+
 /**
  * @swagger
  * /api/employees:
@@ -22,8 +24,7 @@ const {
  *       500:
  *         description: Server error
  */
-router.get("/", getEmployees);
-
+router.get("/", authMiddleware, getEmployees);
 
 /**
  * @swagger
@@ -73,7 +74,7 @@ router.get("/", getEmployees);
  *       500:
  *         description: Server error
  */
-router.post("/", createEmployee);
+router.post("/", authMiddleware, createEmployee);
 
 /**
  * @swagger
@@ -132,7 +133,7 @@ router.post("/", createEmployee);
  *       500:
  *         description: Server error
  */
-router.put("/:id", updateEmployee);
+router.put("/:id", authMiddleware, updateEmployee);
 
 /**
  * @swagger
@@ -158,6 +159,6 @@ router.put("/:id", updateEmployee);
  *       500:
  *         description: Server error
  */
-router.delete("/:id", deleteEmployee);
+router.delete("/:id", authMiddleware, deleteEmployee);
 
 module.exports = router;

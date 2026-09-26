@@ -89,6 +89,10 @@ app.get("/", (req, res) => {
 
 app.use("/api/employees", apiLimiter, employeeRoutes);
 
+const authRoutes = require("./routes/authRoutes");
+
+app.use("/api/auth", authRoutes);
+
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
